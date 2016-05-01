@@ -6,8 +6,13 @@ import string
 from letter_freq import letter_freq_dict
 
 """
-My solutions to the Matasano Crypto Challenges, set 1
+My Python 3 solutions to the Matasano Crypto Challenges, set 1
 http://cryptopals.com/sets/1/
+
+To do:
+- Separate out testing code into proper tests
+- Figure out what's going on with break_repeating_key_xor
+
 """
 
 """
@@ -19,9 +24,10 @@ for byte in range(256):
 def hex_to_base64(hex_str):
     """Challenge 1
     Converts hexadecimal string to base64 encoding
-    This b'49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d'
-    becomes this b'SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t'
     """
+    for byte in hex_str:
+        if byte not in b"0123456789abcdef":
+            raise TypeError("Must provide a hexadecimal string, you may have invalid characters")
     str_bytes = binascii.unhexlify(hex_str)
     str_base64 = base64.b64encode(str_bytes)
     return str_base64
@@ -30,8 +36,6 @@ def hex_to_base64(hex_str):
 def fixed_xor(bytes1, bytes2):
     """Challenge 2
     XORs two equal-length bytes objects or byte arrays
-    Input of 1c0111001f010100061a024b53535009181c and 686974207468652062756c6c277320657965
-    Should produce 746865206b696420646f6e277420706c6179
     """
     assert len(bytes1) == len(bytes2), "You must pass equal-length objects"
     """
@@ -41,11 +45,8 @@ def fixed_xor(bytes1, bytes2):
     """
     return bytes().join([bytes([a ^ b]) for a, b in zip(bytes1, bytes2)])
 
-# print(fixed_xor(binascii.unhexlify(b'1c0111001f010100061a024b53535009181c'),
-#                 binascii.unhexlify(b'686974207468652062756c6c277320657965')))
 
-
-def single_byte_xor_cipher(ciphertext):
+def single_byte_xor_cryptanalysis(ciphertext):
     """Challenge 3
     Performs cryptanalysis on a bytes object (ciphertext) that has been XOR'd against a single byte.
     Returns tuple of most likely plaintext, most likely key byte, and likelihood score.
@@ -71,23 +72,18 @@ def single_byte_xor_cipher(ciphertext):
            max(keys_dict, key=keys_dict.get), \
            max(plaintexts_dict.values())
 
-# print(single_byte_xor_cipher(binascii.unhexlify(
-#     '1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736')))
-
-# print(single_byte_xor_cipher(fixed_xor(b"The optional source parameter can be used to initialize the array",
-#                                        b"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")))
 
 def detect_single_character_xor(file_obj):
     """Challenge 4
-    Performs cryptanalysis on a file object, one of whose lines contains text encrypted using single_byte_xor_cipher.
+    Performs cryptanalysis on a file object, one of whose lines contains text encrypted using single_byte_xor_cryptanalysis.
     Returns decrypted plaintext of that line.
     """
     line_plaintexts = dict()
-    # For each line in file, call single_byte_xor_cipher to return the most likely plaintext and its score
+    # For each line in file, call single_byte_xor_cryptanalysis to return the most likely plaintext and its score
     for line in file_obj.readlines():
         line = line.strip('\n')  # Get rid of newline at the end of our hexadecimal string
         line_bytes = binascii.unhexlify(line)
-        likely_pt, score = single_byte_xor_cipher(line_bytes)
+        likely_pt, score = single_byte_xor_cryptanalysis(line_bytes)
         line_plaintexts[likely_pt] = score
     return max(line_plaintexts, key=line_plaintexts.get)
 
@@ -242,8 +238,8 @@ def break_repeating_key_xor(ciphertext):
         # Each of these transposed byte groups can be broken using single-character XOR
         most_likely_key = bytearray()
         for i in range(candidate_key_size):
-            # print(single_byte_xor_cipher(ct_transposed[i]))
-            most_likely_key_byte = single_byte_xor_cipher(ct_transposed[i])[1]
+            # print(single_byte_xor_cryptanalysis(ct_transposed[i]))
+            most_likely_key_byte = single_byte_xor_cryptanalysis(ct_transposed[i])[1]
             # print("Guessing key byte " + str(most_likely_key_byte))
             most_likely_key.append(most_likely_key_byte)
         print("Most likely key is " + str(most_likely_key))
@@ -261,11 +257,13 @@ print(ciphertext_bytes)
 print(break_repeating_key_xor(ciphertext_bytes))
 """
 
+"""
 with open('set1_challenge6_ciphertext.txt') as file:
     ciphertext_text = file.read()
 ciphertext_b64 = ciphertext_text.replace('\n', '')
 ciphertext_bytes = base64.b64decode(ciphertext_b64)
 # MOSTLY works, tends to get the key length wrong
 print(break_repeating_key_xor(ciphertext_bytes))
+"""
 
 # print(repeating_key_xor(ciphertext_bytes, b'Terminator X: Bring the noise'))
