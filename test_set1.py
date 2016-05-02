@@ -97,28 +97,30 @@ def test_transpose_bytes():
                                                                   bytearray(b'b eoodo'),
                                                                   bytearray(b'oo  b b')]
 
-
 """
-def test_break_repeating_key_xor():
+def test_break_repeating_key_xor_1():
     pt = b'The libel pleaded that the pew was erected under a faculty in 1725, and was transferred to Haines in 1816.'
     key = b'\x00\x00\xff'
     test = set1.repeating_key_xor(pt, key)
     print(test)
     print(set1.break_repeating_key_xor(test))
-"""
+    # todo fixme
 
-test = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
-ciphertext_bytes = binascii.unhexlify(test)
-print(ciphertext_bytes)
-print(set1.break_repeating_key_xor(ciphertext_bytes))
 
-"""
+def test_break_repeating_key_xor_2():
+    test = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
+    ciphertext_bytes = binascii.unhexlify(test)
+    print(ciphertext_bytes)
+    print(set1.break_repeating_key_xor(ciphertext_bytes))
+    # todo fixme
+
+
 with open('set1_challenge6_ciphertext.txt') as file:
     ciphertext_text = file.read()
 ciphertext_b64 = ciphertext_text.replace('\n', '')
 ciphertext_bytes = base64.b64decode(ciphertext_b64)
 # MOSTLY works, tends to get the key length wrong
-print(break_repeating_key_xor(ciphertext_bytes))
-"""
+print(set1.break_repeating_key_xor(ciphertext_bytes))
 
 # print(repeating_key_xor(ciphertext_bytes, b'Terminator X: Bring the noise'))
+"""

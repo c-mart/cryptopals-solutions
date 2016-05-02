@@ -35,11 +35,12 @@ z 0.074%
 """
 
 text_list = text.split('\n')
-letter_freq_dict = dict()
+reference_letter_freq_dict = dict()
 for line in text_list:
     match = re.search("([a-z]) ([0-9]+\.[0-9]+)%.*", line)
     if match:
-        letter_freq_dict[match.group(1)] = float(match.group(2))
+        reference_letter_freq_dict[match.group(1)] = float(match.group(2)) / 100  # Using proportions rather than percentages
 
 if __name__ == "__main__":
-    print(letter_freq_dict)
+    import pprint
+    pprint.pprint(reference_letter_freq_dict)

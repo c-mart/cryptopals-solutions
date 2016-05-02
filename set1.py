@@ -1,9 +1,10 @@
 import base64
 import binascii
 import bitstring
-import pprint
+import collections
 import string
-from letter_freq import letter_freq_dict
+import pprint
+from letter_freq import reference_letter_freq_dict
 
 """
 My Python 3 solutions to the Matasano Crypto Challenges, set 1
@@ -56,11 +57,15 @@ def single_byte_xor_cryptanalysis(ciphertext):
         for pt_byte in candidate_plaintext:
             c = chr(pt_byte)
             if c in string.ascii_lowercase:
-                score += letter_freq_dict[c]
+                score += reference_letter_freq_dict[c]
             # Upper-case letters count slightly less than lower-case
             if c in string.ascii_uppercase:
-                score += letter_freq_dict[c.lower()] * 0.75
+                score += reference_letter_freq_dict[c.lower()] * 0.75
         score /= len(ciphertext)  # Normalize score over length of plaintext
+        # Decrement score by 5% for every character that is not a letter, number, or common punctuation
+        for pt_byte in candidate_plaintext:
+            if chr(pt_byte) not in (string.ascii_letters + " ,.'?!\""):
+                score *= 0.95
         plaintexts_dict[candidate_plaintext] = score
         keys_dict[key_byte] = score
     return max(plaintexts_dict, key=plaintexts_dict.get), \
