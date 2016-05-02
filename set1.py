@@ -15,11 +15,6 @@ To do:
 
 """
 
-"""
-print("This is what all the bytes look like!")
-for byte in range(256):
-    print(bytes([byte]), end=" ")
-"""
 
 def hex_to_base64(hex_str):
     """Challenge 1
@@ -75,7 +70,7 @@ def single_byte_xor_cryptanalysis(ciphertext):
 
 def detect_single_character_xor(file_obj):
     """Challenge 4
-    Performs cryptanalysis on a file object, one of whose lines contains text encrypted using single_byte_xor_cryptanalysis.
+    Performs cryptanalysis on a file object, one of whose lines contains text encrypted using fixed_xor.
     Returns decrypted plaintext of that line.
     """
     line_plaintexts = dict()
@@ -83,19 +78,15 @@ def detect_single_character_xor(file_obj):
     for line in file_obj.readlines():
         line = line.strip('\n')  # Get rid of newline at the end of our hexadecimal string
         line_bytes = binascii.unhexlify(line)
-        likely_pt, score = single_byte_xor_cryptanalysis(line_bytes)
+        likely_pt, _, score = single_byte_xor_cryptanalysis(line_bytes)
         line_plaintexts[likely_pt] = score
     return max(line_plaintexts, key=line_plaintexts.get)
-
-# with open('set1_challenge4_ciphertext.txt') as file_obj:
-#     print(detect_single_character_xor(file_obj))
 
 
 def repeating_key_xor(orig_bytes, key_bytes):
     """Challenge 5
     Transforms a bytes object by repeating the key, returns ciphertext
     Key is repeated to match the length of plaintext, then each plaintext byte is XORd with the corresponding key byte.
-
         PT:  b"Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
         KEY: b"ICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICEICE"
     """
@@ -104,20 +95,6 @@ def repeating_key_xor(orig_bytes, key_bytes):
     for i in range(len(orig_bytes)):
         expanded_key.append(key_bytes[i % len(key_bytes)])
     return fixed_xor(orig_bytes, expanded_key)
-
-# Tests for repeating key XOR
-"""
-pt_bytes = b"Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
-key_bytes = b"ICE"
-print(binascii.hexlify(repeating_key_xor(pt_bytes, key_bytes)))
-"""
-
-"""
-with open('my_secret.key', 'rb') as my_secret_stuff:
-    ct = repeating_key_xor(my_secret_stuff.read(), b'Password1')
-    with open('my_encrypted_stuff', 'wb') as my_encrypted_stuff:
-        my_encrypted_stuff.write(ct)
-"""
 
 
 def bitwise_hamming_distance(bytes1, bytes2):
@@ -131,14 +108,17 @@ def bitwise_hamming_distance(bytes1, bytes2):
         distance += bin(byte).count('1')  # bin() generates a binary string from a byte
     return distance
 
-assert bitwise_hamming_distance(b'this is a test', b'wokka wokka!!!') == 37, "Invalid bitwise hamming distance"
-assert bitwise_hamming_distance(b'this is another test', b'this is another test') == 0, "Invalid bitwise hamming distance"
 
-
-def get_key_size_likelihoods(ciphertext):
+def get_repeating_xor_key_size_likelihoods(ciphertext):
     """Finds likelihood of different key sizes for a repeating-key XOR ciphertext whose key and plaintext are not known
-    Does this by computing hamming distance between differently sized blocks
-    Returns a dictionary whose keys are possible key/block sizes and values are normalized hamming distance between first two blocks for each key size"""
+    Tests each possible key size by computing hamming distance between the first two blocks and second two blocks.
+    The mean of these two hamming distances is the likelihood score for that key/block size.
+    Returns dict:
+    - Keys are possible key/block sizes
+    - Values are normalized hamming distance between first two blocks for each key size
+
+    Among the few key sizes with the smallest normalized hamming distance, the smallest key size is likely the true one.
+    """
     key_size_likelihoods = dict()
     for test_key_size in range(1, len(ciphertext) // 4 + 1):  # Only tries key sizes for which we can test four blocks
         # Break up ciphertext into blocks according to key_size
@@ -164,40 +144,8 @@ def get_key_size_likelihoods(ciphertext):
         print("Likelihood score: " + str(1 / hdist_normalized))
         print()
         """
-
     return key_size_likelihoods
 
-# Tests for get_key_size_likelihoods
-"""
-test_ct_b64 = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
-test_ct_bytes = base64.b64decode(test_ct_b64)
-test_likelihoods = get_key_size_likelihoods(test_ct_bytes)
-most_likely_key_size = sorted(test_likelihoods, key=test_likelihoods.get, reverse=True)[0]
-assert most_likely_key_size == 3, "Most likely key size should be 3"
-"""
-
-# Sorta works?
-
-"""
-test_pt_bytes = b"$^%&* d33, I am hustling. bwenenaoRock n' roll"
-test_key_bytes = b"\xeeghee\xff"
-test_ct_bytes = repeating_key_xor(test_pt_bytes, test_key_bytes)
-test_likelihoods = get_key_size_likelihoods(test_ct_bytes)
-pprint.pprint(test_likelihoods)
-most_likely_key_sizes = sorted(test_likelihoods, key=test_likelihoods.get)[:3]
-print(most_likely_key_sizes)
-assert 6 in most_likely_key_sizes, "6 should be one of the most likely key sizes"
-"""
-
-"""
-test_pt_bytes = b"McNutgets You are a chicken. We are all chickens. SquawK! Let's go lay some eggs."
-test_key_bytes = b"34S$$@"
-test_ct_bytes = repeating_key_xor(test_pt_bytes, test_key_bytes)
-test_likelihoods = get_key_size_likelihoods(test_ct_bytes)
-pprint.pprint(test_likelihoods)
-most_likely_key_sizes = sorted(test_likelihoods, key=test_likelihoods.get)[:3]
-print(most_likely_key_sizes)
-"""
 
 def transpose_bytes(input_bytes, block_size):
     """Takes input_bytes of length x and block_size y
@@ -214,8 +162,6 @@ def transpose_bytes(input_bytes, block_size):
         bytes_transposed.append(group)
     return bytes_transposed
 
-assert transpose_bytes(b'chicken', 2) == [bytearray(b'cikn'), bytearray(b'hce')]
-
 
 def break_repeating_key_xor(ciphertext):
     """Challenge 6 http://cryptopals.com/sets/1/challenges/6/"""
@@ -226,7 +172,7 @@ def break_repeating_key_xor(ciphertext):
     The key size that results in the smallest hamming distance between blocks is the most likely key
     """
 
-    key_size_likelihoods = get_key_size_likelihoods(ciphertext)
+    key_size_likelihoods = get_repeating_xor_key_size_likelihoods(ciphertext)
     # Try 5 most likely key sizes
     most_likely_key_sizes = sorted(key_size_likelihoods, key=key_size_likelihoods.get)[:5]
     print("Most likely key sizes: " + str(most_likely_key_sizes))
@@ -244,26 +190,3 @@ def break_repeating_key_xor(ciphertext):
             most_likely_key.append(most_likely_key_byte)
         print("Most likely key is " + str(most_likely_key))
         print("Guessed plaintext is " + str(repeating_key_xor(ciphertext, most_likely_key)))
-
-# test = repeating_key_xor(b'Ninety and nine concerns occupy my faculties, but a woman is not among them.',
-#                   b'\x00\x00\xff')
-# print(test)
-# print(break_repeating_key_xor(test))
-
-"""
-test = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
-ciphertext_bytes = base64.b64decode(test)
-print(ciphertext_bytes)
-print(break_repeating_key_xor(ciphertext_bytes))
-"""
-
-"""
-with open('set1_challenge6_ciphertext.txt') as file:
-    ciphertext_text = file.read()
-ciphertext_b64 = ciphertext_text.replace('\n', '')
-ciphertext_bytes = base64.b64decode(ciphertext_b64)
-# MOSTLY works, tends to get the key length wrong
-print(break_repeating_key_xor(ciphertext_bytes))
-"""
-
-# print(repeating_key_xor(ciphertext_bytes, b'Terminator X: Bring the noise'))
