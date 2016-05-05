@@ -64,7 +64,7 @@ def single_byte_xor_cryptanalysis(ciphertext):
         score /= len(ciphertext)  # Normalize score over length of plaintext
         # Decrement score by 5% for every character that is not a letter, number, or common punctuation
         for pt_byte in candidate_plaintext:
-            if chr(pt_byte) not in (string.ascii_letters + " ,.'?!\""):
+            if chr(pt_byte) not in (string.ascii_letters + " ,.'?!\"\n"):
                 score *= 0.95
         plaintexts_dict[candidate_plaintext] = score
         keys_dict[key_byte] = score
@@ -114,7 +114,7 @@ def bitwise_hamming_distance(bytes1, bytes2):
     return distance
 
 
-def get_repeating_xor_key_size_likelihoods(ciphertext):
+def get_repeating_xor_key_length_likelihoods(ciphertext):
     """Finds likelihood of different key sizes for a repeating-key XOR ciphertext whose key and plaintext are not known
     Tests each possible key size by computing hamming distance between the first two blocks and second two blocks.
     The mean of these two hamming distances is the likelihood score for that key/block size.
@@ -122,18 +122,17 @@ def get_repeating_xor_key_size_likelihoods(ciphertext):
     - Keys are possible key/block sizes
     - Values are normalized hamming distance between first two blocks for each key size
 
-    Among the few key sizes with the smallest normalized hamming distance, the smallest key size is likely the true one.
     """
-    key_size_likelihoods = dict()
-    for test_key_size in range(1, len(ciphertext) // 4 + 1):  # Only tries key sizes for which we can test four blocks
+    key_length_likelihoods = dict()
+    for test_key_length in range(1, min(40, len(ciphertext) // 4 + 1)):  # Only tries key lengths for which we can test four blocks
         # Break up ciphertext into blocks according to key_size
-        ct_blocks = [ciphertext[i:i+test_key_size] for i in range(0, len(ciphertext), test_key_size)]
+        ct_blocks = [ciphertext[i:i+test_key_length] for i in range(0, len(ciphertext), test_key_length)]
         # Get hamming distances between blocks 0 and 1, and between blocks 2 and 3, normalized over key size
-        hdist_normalized_0_1 = bitwise_hamming_distance(ct_blocks[0], ct_blocks[1]) / float(test_key_size)
-        hdist_normalized_2_3 = bitwise_hamming_distance(ct_blocks[2], ct_blocks[3]) / float(test_key_size)
+        hdist_normalized_0_1 = bitwise_hamming_distance(ct_blocks[0], ct_blocks[1]) / float(test_key_length)
+        hdist_normalized_2_3 = bitwise_hamming_distance(ct_blocks[2], ct_blocks[3]) / float(test_key_length)
         # Take their mean
         mean_hdist_normalized = (hdist_normalized_0_1 + hdist_normalized_2_3) / float(2)
-        key_size_likelihoods[test_key_size] = mean_hdist_normalized
+        key_length_likelihoods[test_key_length] = mean_hdist_normalized
 
         """
         # This code is for visualization and is not strictly needed
@@ -149,7 +148,7 @@ def get_repeating_xor_key_size_likelihoods(ciphertext):
         print("Likelihood score: " + str(1 / hdist_normalized))
         print()
         """
-    return key_size_likelihoods
+    return key_length_likelihoods
 
 
 def transpose_bytes(input_bytes, block_size):
@@ -168,30 +167,34 @@ def transpose_bytes(input_bytes, block_size):
     return bytes_transposed
 
 
-def break_repeating_key_xor(ciphertext):
+def break_repeating_key_xor(ciphertext, try_key_length=None):
     """Challenge 6 http://cryptopals.com/sets/1/challenges/6/"""
 
     """
     First, determine the likely size of the key by splitting up ciphertext (bytes object) into equal size blocks
     For various possible block sizes, calculate the hamming distance between the first two blocks
     The key size that results in the smallest hamming distance between blocks is the most likely key
+    Returns a list of tuples of tested key length, guessed key, and guessed plaintext.
     """
 
-    key_size_likelihoods = get_repeating_xor_key_size_likelihoods(ciphertext)
-    # Try 5 most likely key sizes
-    most_likely_key_sizes = sorted(key_size_likelihoods, key=key_size_likelihoods.get)[:5]
-    print("Most likely key sizes: " + str(most_likely_key_sizes))
+    if try_key_length is None:
+        key_length_likelihoods = get_repeating_xor_key_length_likelihoods(ciphertext)
+        # Try 5 most likely key sizes
+        most_likely_key_lengths = sorted(key_length_likelihoods, key=key_length_likelihoods.get)[:5]
+    else:
+        most_likely_key_lengths = [try_key_length]
 
-    for candidate_key_size in most_likely_key_sizes:
-        print("Testing key size " + str(candidate_key_size))
-        ct_transposed = transpose_bytes(ciphertext, candidate_key_size)
+    decrypts = []
+    for candidate_key_length in most_likely_key_lengths:
+        ct_transposed = transpose_bytes(ciphertext, candidate_key_length)
 
         # Each of these transposed byte groups can be broken using single-character XOR
         most_likely_key = bytearray()
-        for i in range(candidate_key_size):
+        for i in range(candidate_key_length):
             # print(single_byte_xor_cryptanalysis(ct_transposed[i]))
             most_likely_key_byte = single_byte_xor_cryptanalysis(ct_transposed[i])[1]
             # print("Guessing key byte " + str(most_likely_key_byte))
             most_likely_key.append(most_likely_key_byte)
-        print("Most likely key is " + str(most_likely_key))
-        print("Guessed plaintext is " + str(repeating_key_xor(ciphertext, most_likely_key)))
+        most_likely_plaintext = repeating_key_xor(ciphertext, most_likely_key)
+        decrypts.append( (candidate_key_length, most_likely_key, most_likely_plaintext) )
+    return decrypts
