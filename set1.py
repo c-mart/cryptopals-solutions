@@ -169,7 +169,7 @@ def transpose_bytes(input_bytes, block_size):
 
 
 def break_repeating_key_xor(ciphertext, try_key_length=None):
-    """Challenge 6 http://cryptopals.com/sets/1/challenges/6/"""
+    """Challenge 6"""
 
     """
     First, determine the likely size of the key by splitting up ciphertext (bytes object) into equal size blocks
@@ -202,6 +202,35 @@ def break_repeating_key_xor(ciphertext, try_key_length=None):
 
 
 def decrypt_AES_ECB_mode(ciphertext, key):
-    """Challenge 7"""
+    """Challenge 7
+    Given a ciphertext and key, decrypt ciphertext using AES in ECB mode"""
     cipher = AES.new(key, AES.MODE_ECB)
     return cipher.decrypt(ciphertext)
+
+
+def encrypt_AES_ECB_mode(plaintext, key):
+    """Given a plaintext and a key, encrypt ciphertext using AES in ECB mode"""
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(plaintext)
+
+
+def detect_AES_ECB_mode(file_obj):
+    """Challenge 8
+    In a file object containing many lines of random hex-encoded bytes and one line of hex-encoded ciphertext (AES in
+    ECB mode), identify the line containing the ciphertext.
+
+    Given that, ECB mode always results in the same ciphertext for the same block of plaintext, we might be able to
+    detect a ciphertext among random sequences of bytes by looking for a block that repeats.
+    In a random sequence of bytes, the likelihood of two 16-byte blocks matching is 1/2^128 or very small!
+    So, if two blocks match then our sequence is very unlikely to be random.
+    """
+    for line in file_obj.readlines():
+        line = line.strip('\n')  # Get rid of newline at end of each line
+        line_bytes = binascii.unhexlify(line)
+        # Build list of 16-byte blocks
+        blocks = [line_bytes[start:start+16] for start in range(0, len(line_bytes), 16)]
+        # See if any two blocks match
+        for block in blocks:
+            if blocks.count(block) > 1:
+                print("Found it!")
+                return line_bytes

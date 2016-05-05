@@ -3,6 +3,7 @@ import set1
 import binascii
 import base64
 import pprint
+import random
 
 def test_hex_to_base64_happy_case():
     some_hex = b'49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d'
@@ -37,10 +38,10 @@ def test_single_byte_xor_cryptanalysis_many():
                   b'My mind is the place where I make my plans',
                   b'The world is the place where I take my stand']
     for pt in plaintexts:
-        for i in range(255):
-            key_byte = bytes([i])
-            ct = set1.fixed_xor(pt, key_byte * len(pt))
-            assert set1.single_byte_xor_cryptanalysis(ct)[:2] == (pt, ord(key_byte))
+        i = random.choice(range(255))
+        key_byte = bytes([i])
+        ct = set1.fixed_xor(pt, key_byte * len(pt))
+        assert set1.single_byte_xor_cryptanalysis(ct)[:2] == (pt, ord(key_byte))
 
 
 def test_detect_single_character_xor():
@@ -120,7 +121,7 @@ def test_break_repeating_key_xor_3():
     ciphertext_b64 = ciphertext_text.replace('\n', '')
     ciphertext_bytes = base64.b64decode(ciphertext_b64)
     # sorta works, tends to get the key length wrong
-    pprint.pprint(set1.break_repeating_key_xor(ciphertext_bytes))
+    # pprint.pprint(set1.break_repeating_key_xor(ciphertext_bytes))
     assert False
 
 # print(set1.break_repeating_key_xor(ciphertext_bytes, 29))
@@ -133,6 +134,11 @@ def test_decrypt_AES_ECB_mode():
     ciphertext_b64 = ciphertext_text.replace('\n', '')
     ciphertext_bytes = base64.b64decode(ciphertext_b64)
     key = b'YELLOW SUBMARINE'
-    assert "I'm back and I'm ringin' the bell" in set1.decrypt_AES_ECB_mode(ciphertext_bytes, key), \
+    assert b"I'm back and I'm ringin' the bell" in set1.decrypt_AES_ECB_mode(ciphertext_bytes, key), \
         "Plaintext should be decrypted by decrypt_AES_ECB_mode()"
 
+
+def test_detect_AES_ECB_mode():
+    with open("set1_challenge8_ciphertext.txt") as file_obj:
+        assert set1.detect_AES_ECB_mode(file_obj) == b'\xd8\x80a\x97@\xa8\xa1\x9bx@\xa8\xa3\x1c\x81\n=\x08d\x9a\xf7\r\xc0oO\xd5\xd2\xd6\x9ctL\xd2\x83\xe2\xdd\x05/kd\x1d\xbf\x9d\x11\xb04\x85B\xbbW\x08d\x9a\xf7\r\xc0oO\xd5\xd2\xd6\x9ctL\xd2\x83\x94u\xc9\xdf\xdb\xc1\xd4e\x97\x94\x9d\x9c~\x82\xbfZ\x08d\x9a\xf7\r\xc0oO\xd5\xd2\xd6\x9ctL\xd2\x83\x97\xa9>\xab\x8dj\xec\xd5fH\x91Tx\x9ak\x03\x08d\x9a\xf7\r\xc0oO\xd5\xd2\xd6\x9ctL\xd2\x83\xd4\x03\x18\x0c\x98\xc8\xf6\xdb\x1f*?\x9c@@\xde\xb0\xabQ\xb2\x993\xf2\xc1#\xc5\x83\x86\xb0o\xba\x18j', \
+            "Ciphertext should be detected by detect_AES_ECB_mode()"
