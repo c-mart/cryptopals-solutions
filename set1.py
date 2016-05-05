@@ -5,6 +5,7 @@ import collections
 import string
 import pprint
 from letter_freq import reference_letter_freq_dict
+from Crypto.Cipher import AES
 
 """
 My Python 3 solutions to the Matasano Crypto Challenges, set 1
@@ -198,3 +199,9 @@ def break_repeating_key_xor(ciphertext, try_key_length=None):
         most_likely_plaintext = repeating_key_xor(ciphertext, most_likely_key)
         decrypts.append( (candidate_key_length, most_likely_key, most_likely_plaintext) )
     return decrypts
+
+
+def decrypt_AES_ECB_mode(ciphertext, key):
+    """Challenge 7"""
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.decrypt(ciphertext)

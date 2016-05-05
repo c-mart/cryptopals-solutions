@@ -66,14 +66,14 @@ def test_bitwise_hamming_distance_same_inputs():
         "Invalid bitwise hamming distance"
 
 
-def test_get_repeating_xor_key_size_likelihoods_1():
+def test_get_repeating_xor_key_length_likelihoods_1():
     ct_bytes = base64.b64decode(
         '0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272'
         'a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f')
-    test_likelihoods = set1.get_repeating_xor_key_size_likelihoods(ct_bytes)
-    most_likely_key_sizes = sorted(test_likelihoods, key=test_likelihoods.get)
-    assert min(most_likely_key_sizes[:3]) == 3, \
-        "3 should be the smallest of the 3 most likely key sizes scored by hamming distance"
+    test_likelihoods = set1.get_repeating_xor_key_length_likelihoods(ct_bytes)
+    most_likely_key_lengths= sorted(test_likelihoods, key=test_likelihoods.get)
+    assert min(most_likely_key_lengths[:3]) == 3, \
+        "3 should be the smallest of the 3 most likely key lengths scored by hamming distance"
 
     # Here we use the heuristic:
     #     "True key size is probably the smallest of the 3 most likely key sizes according to bitwise hamming distance."
@@ -81,14 +81,14 @@ def test_get_repeating_xor_key_size_likelihoods_1():
     # There must be a better way to detect the real key size, e.g. by looking for the repeating multiple of a number.
 
 
-def test_get_repeating_xor_key_size_likelihoods_2():
+def test_get_repeating_xor_key_length_likelihoods_2():
     pt_bytes = b"Where's the kaboom? There was supposed to be an earth-shattering kaboom!"
     key_bytes = b"\x00ghee\xff"  # 6 bytes long
     ct_bytes = set1.repeating_key_xor(pt_bytes, key_bytes)
-    test_likelihoods = set1.get_repeating_xor_key_size_likelihoods(ct_bytes)
-    most_likely_key_sizes = sorted(test_likelihoods, key=test_likelihoods.get)
-    assert min(most_likely_key_sizes[:3]) == 6, \
-        "6 should be the smallest of the 3 most likely key sizes scored by hamming distance"
+    test_likelihoods = set1.get_repeating_xor_key_length_likelihoods(ct_bytes)
+    most_likely_key_lengths = sorted(test_likelihoods, key=test_likelihoods.get)
+    assert min(most_likely_key_lengths[:3]) == 6, \
+        "6 should be the smallest of the 3 most likely key lengths scored by hamming distance"
 
 
 def test_transpose_bytes():
@@ -125,4 +125,14 @@ def test_break_repeating_key_xor_3():
 
 # print(set1.break_repeating_key_xor(ciphertext_bytes, 29))
 # print(repeating_key_xor(ciphertext_bytes, b'Terminator X: Bring the noise'))
+
+
+def test_decrypt_AES_ECB_mode():
+    with open('set1_challenge7_ciphertext.txt') as file:
+        ciphertext_text = file.read()
+    ciphertext_b64 = ciphertext_text.replace('\n', '')
+    ciphertext_bytes = base64.b64decode(ciphertext_b64)
+    key = b'YELLOW SUBMARINE'
+    assert "I'm back and I'm ringin' the bell" in set1.decrypt_AES_ECB_mode(ciphertext_bytes, key), \
+        "Plaintext should be decrypted by decrypt_AES_ECB_mode()"
 
