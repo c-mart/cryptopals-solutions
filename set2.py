@@ -29,9 +29,39 @@ def pkcs7_pad(text, block_size):
     return text_bytes + bytes([pad_length]) * pad_length
 
 
-def encrypt_AES_CBC_mode():
-    pass
+def bytes_to_padded_blocks(bytes, block_size):
+    """Accepts a bytes-like object. Breaks it up into blocks according to block_size. Last block is padded out using
+    PKCS#7. Returns a list of blocks."""
+    padded_bytes = pkcs7_pad(bytes, block_size)
+    return [padded_bytes[index:index+block_size] for index in range(0, len(bytes), block_size)]
 
 
-def decrypt_AES_CBC_mode():
-    pass
+def encrypt_aes_cbc_mode(plaintext, key, iv):
+    """Encrypt plaintext with AES in CBC mode, using provided key and iv (initialization vector)"""
+    assert len(key) == len(iv), "Key and initialization vector must be same length"
+    pt_blocks = bytes_to_padded_blocks(plaintext, len(key))
+    ciphertext = b''
+    xor_with = iv  # Initially, we XOR plaintext with IV
+    # For each block, xor plaintext with xor_with, then encrypt and append to ciphertext.
+    # Each successive plaintext block is XORed with the previous ciphertext block before encryption.
+    for pt_block in pt_blocks:
+        new_ct_block = set1.encrypt_aes_ecb_mode(set1.fixed_xor(pt_block, xor_with), key)
+        ciphertext = ciphertext + new_ct_block
+        xor_with = new_ct_block
+    return ciphertext
+
+
+def decrypt_aes_cbc_mode(ciphertext, key, iv):
+    """Challenge 10
+    Decrypt plaintext with AES in CBC mode, using provided key and iv (initialization vector)"""
+    assert len(key) == len(iv), "Key and initialization vector must be same length"
+    ct_blocks = bytes_to_padded_blocks(ciphertext, len(key))
+    plaintext = b''
+    xor_with = iv  # Initially, we XOR decrypted ciphertext with IV
+    # For each block, decrypt ciphertext, then XOR with xor_with, and append to plaintext.
+    # After decryption, each successive decrypted block is XORed with the previous ciphertext block.
+    for ct_block in ct_blocks:
+        new_pt_block = set1.fixed_xor(xor_with, set1.decrypt_aes_ecb_mode(ct_block, key))
+        plaintext = plaintext + new_pt_block
+        xor_with = ct_block
+    return plaintext
