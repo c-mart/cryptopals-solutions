@@ -4,6 +4,7 @@ import binascii
 import base64
 import pprint
 import random
+import os
 
 def test_hex_to_base64_happy_case():
     some_hex = b'49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d'
@@ -137,6 +138,12 @@ def test_decrypt_AES_ECB_mode():
     assert b"I'm back and I'm ringin' the bell" in set1.decrypt_AES_ECB_mode(ciphertext_bytes, key), \
         "Plaintext should be decrypted by decrypt_AES_ECB_mode()"
 
+
+def test_encrypt_decrypt_AES_ECB_mode():
+    plaintext = os.urandom(64)
+    key = os.urandom(16)
+    ciphertext = set1.encrypt_AES_ECB_mode(plaintext, key)
+    assert set1.decrypt_AES_ECB_mode(ciphertext, key) == plaintext, "Encrypting and decrypting should give us plaintext"
 
 def test_detect_AES_ECB_mode():
     with open("set1_challenge8_ciphertext.txt") as file_obj:

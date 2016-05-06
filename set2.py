@@ -6,6 +6,7 @@ import string
 import pprint
 from letter_freq import reference_letter_freq_dict
 from Crypto.Cipher import AES
+import set1
 
 """
 My Python 3 solutions to the Matasano Crypto Challenges, set 2
@@ -26,3 +27,11 @@ def pkcs7_pad(text, block_size):
     else:
         pad_length = block_size - len(text_bytes) % block_size
     return text_bytes + bytes([pad_length]) * pad_length
+
+
+def encrypt_AES_CBC_mode():
+    pass
+
+
+def decrypt_AES_CBC_mode():
+    pass
