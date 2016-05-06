@@ -200,20 +200,20 @@ def break_repeating_key_xor(ciphertext, try_key_length=None):
     return decrypts
 
 
-def decrypt_AES_ECB_mode(ciphertext, key):
+def encrypt_aes_ecb_mode(plaintext, key):
+    """Given a plaintext and a key, encrypt ciphertext using AES in ECB mode"""
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(plaintext)
+
+
+def decrypt_aes_ecb_mode(ciphertext, key):
     """Challenge 7
     Given a ciphertext and key, decrypt ciphertext using AES in ECB mode"""
     cipher = AES.new(key, AES.MODE_ECB)
     return cipher.decrypt(ciphertext)
 
 
-def encrypt_AES_ECB_mode(plaintext, key):
-    """Given a plaintext and a key, encrypt ciphertext using AES in ECB mode"""
-    cipher = AES.new(key, AES.MODE_ECB)
-    return cipher.encrypt(plaintext)
-
-
-def detect_AES_ECB_mode(file_obj):
+def detect_aes_ecb_mode(file_obj):
     """Challenge 8
     In a file object containing many lines of random hex-encoded bytes and one line of hex-encoded ciphertext (AES in
     ECB mode), identify the line containing the ciphertext.
