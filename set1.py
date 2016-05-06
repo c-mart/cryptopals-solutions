@@ -12,7 +12,6 @@ My Python 3 solutions to the Matasano Crypto Challenges, set 1
 http://cryptopals.com/sets/1/
 
 To do:
-- Separate out testing code into proper tests
 - Figure out what's going on with break_repeating_key_xor
 
 """
