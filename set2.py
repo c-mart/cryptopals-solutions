@@ -1,12 +1,6 @@
-import base64
-import binascii
-import bitstring
-import collections
-import string
-import pprint
-from letter_freq import reference_letter_freq_dict
-from Crypto.Cipher import AES
 import set1
+import os
+import random
 
 """
 My Python 3 solutions to the Matasano Crypto Challenges, set 2
@@ -30,7 +24,7 @@ def pkcs7_pad(text, block_size):
 
 
 def bytes_to_padded_blocks(bytes, block_size):
-    """Accepts a bytes-like object. Breaks it up into blocks according to block_size. Last block is padded out using
+    """Accepts a bytes-like object. Breaks it up into blocks according to block_size bytes. Last block is padded out using
     PKCS#7. Returns a list of blocks."""
     padded_bytes = pkcs7_pad(bytes, block_size)
     return [padded_bytes[index:index+block_size] for index in range(0, len(bytes), block_size)]
@@ -65,3 +59,48 @@ def decrypt_aes_cbc_mode(ciphertext, key, iv):
         plaintext = plaintext + new_pt_block
         xor_with = ct_block
     return plaintext
+
+
+def generate_random_aes_key():
+    """Challenge 11
+    Generates a random 128-bit AES key"""
+    return os.urandom(16)
+
+
+def _get_random_bytes(length):
+    return bytes(random.getrandbits(8) for i in range(length))
+
+
+def blackbox_encrypt_ecb_or_cbc(plaintext):
+    """Challenge 11
+    - Encrypts plaintext using a random key
+    - Pre-pends 5-10 random bytes to plaintext, appends 5-10 bytes to plaintext
+    - With 50% probability of each, encrypts plaintext using ECB mode or CBC mode
+    - Returns ciphertext
+
+    We're using the random package rather than os.urandom() because deterministic randomness is testable
+    """
+
+    key = generate_random_aes_key()
+    plaintext = _get_random_bytes(random.randint(5, 10)) \
+                + plaintext \
+                + _get_random_bytes(random.randint(5, 10))
+    if random.random() < 0.5:
+        padded_pt = pkcs7_pad(plaintext, 16)
+        return set1.encrypt_aes_ecb_mode(padded_pt, key)
+    else:
+        iv = _get_random_bytes(16)
+        return encrypt_aes_cbc_mode(plaintext, key, iv)
+
+
+def blackbox_encrypt_ecb_or_cbc_oracle():
+    """Challenge 11
+    Detects whether blackbox_encrypt_ecb_or_cbc() is encrypting using ECB or CBC mode
+    Returns tuple of eithre "ECB" or "CBC" and ciphertext
+    """
+    ciphertext = blackbox_encrypt_ecb_or_cbc(b'a' * 64)
+    # Look for any 16-byte sequence that is repeated
+    for sixteen_byte_seq in [ciphertext[i:i+16] for i in range(len(ciphertext) - 16)]:
+        if ciphertext.count(sixteen_byte_seq) > 1:
+            return "ECB", ciphertext
+    return "CBC", ciphertext

@@ -1,6 +1,7 @@
 import set2
 import pytest
 import base64
+import random
 
 def test_pkcs7_pad():
     assert set2.pkcs7_pad(b"YELLOW SUBMARINE", 20) == b"YELLOW SUBMARINE\x04\x04\x04\x04", \
@@ -56,3 +57,21 @@ def test_decrypt_aes_cbc_mode():
         "Beginning of plaintext not decrypted"
     assert b"'Cause why the freaks are jockin' like Crazy Glue" in plaintext, \
         "Middle of plaintext not decrypted"
+
+
+def test_blackbox_encrypt_ecb_or_cbc_oracle_deterministic():
+    for i in range(10):
+        # Use deterministic randomness
+        random.seed(0)
+        assert set2.blackbox_encrypt_ecb_or_cbc_oracle()[0] == 'CBC'
+    for i in range(10):
+        random.seed(1)
+        assert set2.blackbox_encrypt_ecb_or_cbc_oracle()[0] == 'ECB'
+
+
+def test_blackbox_encrypt_ecb_or_cbc_oracle_random():
+    results = list()
+    for i in range(100):
+        results.append(set2.blackbox_encrypt_ecb_or_cbc_oracle()[0])
+    assert 30 < results.count("ECB") < 70, "ECB should be used about half the time"
+    assert 30 < results.count("CBC") < 70, "CBC should be used about half the time"
