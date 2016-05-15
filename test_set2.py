@@ -63,15 +63,22 @@ def test_blackbox_encrypt_ecb_or_cbc_oracle_deterministic():
     for i in range(10):
         # Use deterministic randomness
         random.seed(0)
-        assert set2.blackbox_encrypt_ecb_or_cbc_oracle()[0] == 'CBC'
+        assert set2.detect_oracle_ecb_or_cbc(set2.encrypt_ecb_or_cbc_oracle)[0] == 'CBC'
     for i in range(10):
         random.seed(1)
-        assert set2.blackbox_encrypt_ecb_or_cbc_oracle()[0] == 'ECB'
+        assert set2.detect_oracle_ecb_or_cbc(set2.encrypt_ecb_or_cbc_oracle)[0] == 'ECB'
 
 
 def test_blackbox_encrypt_ecb_or_cbc_oracle_random():
     results = list()
     for i in range(100):
-        results.append(set2.blackbox_encrypt_ecb_or_cbc_oracle()[0])
+        results.append(set2.detect_oracle_ecb_or_cbc(set2.encrypt_ecb_or_cbc_oracle)[0])
     assert 30 < results.count("ECB") < 70, "ECB should be used about half the time"
     assert 30 < results.count("CBC") < 70, "CBC should be used about half the time"
+
+
+def test_detect_oracle_block_size():
+    assert set2.detect_oracle_block_size(set2.byte_at_time_ecb_oracle) == 16, \
+        "Block size of byte_at_time_ecb_oracle() not detected properly"
+
+# Todo test for challenge 12
