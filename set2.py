@@ -3,6 +3,7 @@ import os
 import random
 import base64
 import pprint
+from collections import OrderedDict
 
 """
 My Python 3 solutions to the Matasano Crypto Challenges, set 2
@@ -11,13 +12,13 @@ http://cryptopals.com/sets/2/
 """
 
 
-def pkcs7_pad(text, block_size):
+def pkcs7_pad(text, block_size=16):
     """Challenge 9
     Pads text out to an even multiple of block_size bytes using PKCS#7
     """
     if type(block_size) != int or block_size <= 0:
         raise ValueError("Block size must be a positive integer")
-    text_bytes = bytes(text)
+    text_bytes = bytes(map(ord, text))
     if len(text_bytes) % block_size == 0:
         pad_length = 0
     else:
@@ -25,15 +26,17 @@ def pkcs7_pad(text, block_size):
     return text_bytes + bytes([pad_length]) * pad_length
 
 
-def bytes_to_padded_blocks(bytes, block_size):
+def bytes_to_padded_blocks(bytes_obj, block_size):
     """Accepts a bytes-like object. Breaks it up into blocks according to block_size bytes. Last block is padded out using
-    PKCS#7. Returns a list of blocks."""
-    padded_bytes = pkcs7_pad(bytes, block_size)
-    return [padded_bytes[index:index+block_size] for index in range(0, len(bytes), block_size)]
+    PKCS#7. Returns a list of blocks.
+    """
+    padded_bytes = pkcs7_pad(bytes_obj, block_size)
+    return [padded_bytes[index:index+block_size] for index in range(0, len(bytes_obj), block_size)]
 
 
 def encrypt_aes_cbc_mode(plaintext, key, iv):
-    """Encrypt plaintext with AES in CBC mode, using provided key and iv (initialization vector)"""
+    """Encrypt plaintext with AES in CBC mode, using provided key and iv (initialization vector)
+    """
     assert len(key) == len(iv), "Key and initialization vector must be same length"
     pt_blocks = bytes_to_padded_blocks(plaintext, len(key))
     ciphertext = b''
@@ -49,7 +52,8 @@ def encrypt_aes_cbc_mode(plaintext, key, iv):
 
 def decrypt_aes_cbc_mode(ciphertext, key, iv):
     """Challenge 10
-    Decrypt plaintext with AES in CBC mode, using provided key and iv (initialization vector)"""
+    Decrypt plaintext with AES in CBC mode, using provided key and iv (initialization vector)
+    """
     assert len(key) == len(iv), "Key and initialization vector must be same length"
     ct_blocks = bytes_to_padded_blocks(ciphertext, len(key))
     plaintext = b''
@@ -65,11 +69,15 @@ def decrypt_aes_cbc_mode(ciphertext, key, iv):
 
 def generate_random_aes_key(len_bytes):
     """Challenge 11
-    Generates a random AES key of len_bytes length"""
+    Generates a random AES key of len_bytes length
+    """
     return os.urandom(len_bytes)
 
 
 def _get_random_bytes(length):
+    """Challenge 11
+    Get bytes object containing random bytes, of provided length
+    """
     return bytes(random.getrandbits(8) for i in range(length))
 
 
@@ -133,7 +141,8 @@ def byte_at_time_ecb_oracle(plaintext):
 
 
 def detect_oracle_block_size(oracle_function):
-    """Detects block size of an oracle function that encrypts using a block cipher.
+    """Challenge 12
+    Detects block size of an oracle function that encrypts using a block cipher.
     oracle_function must accept a plaintext as its single argument.
     """
     pt_len = 1
@@ -191,3 +200,63 @@ def byte_at_time_ecb_decryption(oracle_function):
 
         plaintext += new_pt_byte
     return plaintext
+
+
+def kv_str_to_dict(kv_str):
+    """Challenge 13
+    Parses key-value string, returns dictionary
+    """
+    assert type(kv_str) in (str, bytes), "Must provide string or bytes object"
+    if type(kv_str) is bytes:
+        kv_str = str(kv_str)
+    out_dict = OrderedDict()
+    kv_pairs = kv_str.split('&')
+    for pair in kv_pairs:
+        key, value = tuple(pair.split('='))
+        out_dict[key] = value
+    return out_dict
+
+
+def dict_to_kv_str(kv_dict):
+    """Challenge 13
+    Returns key-value string from dictionary
+    """
+    assert type(kv_dict) in (dict, OrderedDict), "Must provide dictionary"
+    for key, value in kv_dict.items():
+        if any((invalid_char in str(key) or invalid_char in str(value)) for invalid_char in "&="):
+            raise SyntaxError("& and = not allowed in kv_dict")
+    out_str_pairs = list()
+    for key in kv_dict:
+        out_str_pairs.append('{0}={1}'.format(key, kv_dict[key]))
+    return '&'.join(out_str_pairs)
+
+
+def profile_for(email):
+    """Challenge 13
+    Encodes 'user profile' as key-value string
+    """
+    profile = OrderedDict()
+    profile['email'] = email
+    profile['uid'] = 10
+    profile['role'] = 'user'
+    return dict_to_kv_str(profile)
+
+# Generate consistent AES key for ECB cut-and-paste
+key_for_ecb_cut_and_paste = generate_random_aes_key(16)
+
+
+def encrypt_profile(profile):
+    """Challenge 13
+    Encrypts user profile with AES in ECB mode
+    """
+    return set1.encrypt_aes_ecb_mode(pkcs7_pad(profile), key_for_ecb_cut_and_paste)
+
+
+def decrypt_parse_profile(encrypted_profile):
+    """Challenge 13
+    Decrypts encrypted user profile and parses it to dictionary
+    """
+    decrypt = set1.decrypt_aes_ecb_mode(encrypted_profile, key_for_ecb_cut_and_paste)
+    return kv_str_to_dict(decrypt)
+
+print(decrypt_parse_profile(encrypt_profile(profile_for('dont@spam.me'))))

@@ -17,7 +17,7 @@ def test_pkcs7_pad_no_padding():
 def test_pkcs7_pad_max_padding():
     assert set2.pkcs7_pad(b"YELLOW SUBMARINES", 16) == \
            b"YELLOW SUBMARINES\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f", \
-        "Should have 15 bytes of padding"
+           "Should have 15 bytes of padding"
 
 
 def test_pkcs7_pad_invalid_block_size():
@@ -88,3 +88,29 @@ def test_byte_at_time_ecb_decryption():
     expected_pt = b"Rollin' in my 5.0\nWith my rag-top down so my hair can blow\nThe girlies on standby waving just" + \
                   b" to say hi\nDid you stop? No, I just drove by\n"
     assert decrypt == expected_pt, "Plaintext not decrypted properly"
+
+
+def test_kv_str_to_dict():
+    kv_str = 'foo=bar&baz=qux&zap=zazzle'
+    kv_dict = {'zap': 'zazzle', 'foo': 'bar', 'baz': 'qux'}
+    assert set2.kv_str_to_dict(kv_str) == kv_dict, "Key-value string did not produce expected dictionary"
+
+
+def test_dict_to_kv_str_happy_case():
+    kv_dict = {'zap': 'zazzle', 'foo': 'bar', 'baz': 'qux'}
+    kv_strs = ['foo=bar', 'baz=qux', 'zap=zazzle']
+    assert sorted(set2.dict_to_kv_str(kv_dict).split('&')) == sorted(kv_strs), \
+        "Key-value dictionary did not produce expected string"
+
+
+def test_dict_to_kv_str_error_case():
+    invalid_dicts = ({'zap': 'zazzle', 'foo=': 'bar', 'baz': 'qux'},
+                     {'zap': 'zaz&zle', 'foo': 'bar', 'baz': 'qux'})
+    for d in invalid_dicts:
+        with pytest.raises(SyntaxError):
+            set2.dict_to_kv_str(d)
+
+
+def test_profile_for():
+    assert set2.profile_for('dont@spam.me') == "email=dont@spam.me&uid=10&role=user", \
+        "Output of profile_for does not match specification"
