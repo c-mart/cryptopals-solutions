@@ -3,6 +3,7 @@ import pytest
 import base64
 import random
 
+
 def test_pkcs7_pad():
     assert set2.pkcs7_pad(b"YELLOW SUBMARINE", 20) == b"YELLOW SUBMARINE\x04\x04\x04\x04", \
         "Should have four bytes of padding"
@@ -16,7 +17,7 @@ def test_pkcs7_pad_no_padding():
 def test_pkcs7_pad_max_padding():
     assert set2.pkcs7_pad(b"YELLOW SUBMARINES", 16) == \
            b"YELLOW SUBMARINES\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f", \
-           "Should have 15 bytes of padding"
+        "Should have 15 bytes of padding"
 
 
 def test_pkcs7_pad_invalid_block_size():
@@ -41,7 +42,7 @@ def test_bytes_to_padded_blocks():
 
 def test_encrypt_decrypt_aes_cbc_mode():
     plaintext = b"In CBC mode, each ciphertext block is added to the next plaintext " + \
-    b"block before the next call to the cipher core."
+                b"block before the next call to the cipher core."
     key = b"chickens fingers"
     iv = b"honey mustard ok"
     ciphertext = set2.encrypt_aes_cbc_mode(plaintext, key, iv)
@@ -52,7 +53,7 @@ def test_decrypt_aes_cbc_mode():
     with open("set2_challenge10_ciphertext", mode='r') as file:
         ciphertext_b64 = file.read()
     ciphertext_bytes = base64.b64decode(ciphertext_b64)
-    plaintext = set2.decrypt_aes_cbc_mode(ciphertext_bytes, b'YELLOW SUBMARINE', b'\x00'*16)
+    plaintext = set2.decrypt_aes_cbc_mode(ciphertext_bytes, b'YELLOW SUBMARINE', b'\x00' * 16)
     assert b"I'm back and I'm ringin' the bell" in plaintext, \
         "Beginning of plaintext not decrypted"
     assert b"'Cause why the freaks are jockin' like Crazy Glue" in plaintext, \
@@ -81,4 +82,9 @@ def test_detect_oracle_block_size():
     assert set2.detect_oracle_block_size(set2.byte_at_time_ecb_oracle) == 16, \
         "Block size of byte_at_time_ecb_oracle() not detected properly"
 
-# Todo test for challenge 12
+
+def test_byte_at_time_ecb_decryption():
+    decrypt = set2.byte_at_time_ecb_decryption(set2.byte_at_time_ecb_oracle)
+    expected_pt = b"Rollin' in my 5.0\nWith my rag-top down so my hair can blow\nThe girlies on standby waving just" + \
+                  b" to say hi\nDid you stop? No, I just drove by\n"
+    assert decrypt == expected_pt, "Plaintext not decrypted properly"

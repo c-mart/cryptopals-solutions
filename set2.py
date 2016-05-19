@@ -128,7 +128,6 @@ def byte_at_time_ecb_oracle(plaintext):
                         b'dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg' \
                         b'YnkK'
     secret_string_bytes = base64.b64decode(secret_string_b64)
-    # padded_combined_pt = pkcs7_pad(plaintext + secret_string_bytes, 16)
     padded_combined_pt = pkcs7_pad(plaintext + secret_string_bytes, 16)
     return set1.encrypt_aes_ecb_mode(padded_combined_pt, key_for_byte_at_time_ecb_oracle)
 
@@ -149,17 +148,17 @@ def detect_oracle_block_size(oracle_function):
             continue
 
 
-def byte_at_time_ecb_decryption():
+def byte_at_time_ecb_decryption(oracle_function):
     """Challenge 12
-    Break an ECB-encrypted block cipher one byte at a time, using byte_at_time_ecb_oracle
+    Break an ECB-encrypted block cipher one byte at a time, using passed oracle_function
     Finds the plaintext
     """
-    block_size = detect_oracle_block_size(byte_at_time_ecb_oracle)
-    assert detect_oracle_ecb_or_cbc(byte_at_time_ecb_oracle)[0] == "ECB", "Oracle function must encrypt using ECB"
-    assert len(byte_at_time_ecb_oracle(b'')) % block_size == 0, \
+    block_size = detect_oracle_block_size(oracle_function)
+    assert detect_oracle_ecb_or_cbc(oracle_function)[0] == "ECB", "Oracle function must encrypt using ECB"
+    assert len(oracle_function(b'')) % block_size == 0, \
         "Oracle function must produce a ciphertext whose length is an even multiple of block_size"
 
-    pt_len = len(byte_at_time_ecb_oracle(b''))
+    pt_len = len(oracle_function(b''))
     plaintext = b''
 
     for pt_index in range(pt_len):
@@ -169,20 +168,26 @@ def byte_at_time_ecb_decryption():
         # Feed the oracle between 0 and (block_size - 1) known bytes, placing the next byte to be decrypted in the last
         # position of its block
         pre_pad = (b'A' * pre_pad_0_len)
-        ct_block_unknown_last_byte = byte_at_time_ecb_oracle(pre_pad)[block_start:block_start+block_size]
+        ct_block_unknown_last_byte = oracle_function(pre_pad)[block_start:block_start+block_size]
 
         # Try encrypting block using all possible values of last byte, store results in dictionary
         ct_block_possible_last_byte_dict = dict()
         for byte_int in range(255):
             byte = bytes([byte_int])
-            ct_block = byte_at_time_ecb_oracle(pre_pad + plaintext + byte)[block_start:block_start+block_size]
+            ct_block = oracle_function(pre_pad + plaintext + byte)[block_start:block_start+block_size]
             ct_block_possible_last_byte_dict[ct_block] = byte
         # The last byte which produces ciphertext block matching ct_block_unknown_last_byte is next byte of plaintext
         try:
             new_pt_byte = ct_block_possible_last_byte_dict[ct_block_unknown_last_byte]
-        except KeyError:  # Todo fix this, understand why decryption stops working
-            break
+        except KeyError:
+            # We have probably begun to decrypt padding, which won't work with this method
+            if plaintext[-1] in range(block_size):
+                # Last byte was likely padding, discard it, we are done
+                plaintext = plaintext[:-1]
+                break
+            else:
+                # Something else may have gone wrong
+                raise
+
         plaintext += new_pt_byte
     return plaintext
-
-print(byte_at_time_ecb_decryption())
