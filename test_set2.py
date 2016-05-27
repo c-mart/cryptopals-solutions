@@ -112,9 +112,9 @@ def test_kv_str_to_dict():
 
 
 def test_dict_to_kv_str_happy_case():
-    kv_dict = {'zap': 'zazzle', 'foo': 'bar', 'baz': 'qux'}
-    kv_strs = ['foo=bar', 'baz=qux', 'zap=zazzle']
-    assert sorted(set2.dict_to_kv_str(kv_dict).split('&')) == sorted(kv_strs), \
+    kv_dict = {b'zap': b'zazzle', b'foo': b'bar', b'baz': b'qux'}
+    kv_strs = [b'foo=bar', b'baz=qux', b'zap=zazzle']
+    assert sorted(set2.dict_to_kv_str(kv_dict).split(b'&')) == sorted(kv_strs), \
         "Key-value dictionary did not produce expected string"
 
 
@@ -127,6 +127,11 @@ def test_dict_to_kv_str_error_case():
 
 
 def test_profile_for():
-    assert set2.profile_for('dont@spam.me') == "email=dont@spam.me&uid=10&role=user", \
+    assert set2.profile_for(b'dont@spam.me') == b"email=dont@spam.me&uid=10&role=user", \
         "Output of profile_for does not match specification"
 
+
+def test_ecb_cut_and_paste_solver():
+    admin_profile_ct = set2.ecb_cut_and_paste_solver()
+    assert set2.decrypt_parse_profile(admin_profile_ct)['role'] == 'admin', \
+        "ecb_cut_and_paste_solver() did not produce an admin profile"

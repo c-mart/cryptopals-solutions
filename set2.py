@@ -218,18 +218,20 @@ def kv_str_to_dict(kv_str):
     """
     assert type(kv_str) in (str, bytes), "Must provide string or bytes object"
     if type(kv_str) is bytes:
-        kv_str = kv_str.decode("utf-8")
+        kv_str = kv_str.decode("ascii")
+
     out_dict = OrderedDict()
     kv_pairs = kv_str.split('&')
     for pair in kv_pairs:
-        key, value = tuple(pair.split('='))
+        delimiter_pos = pair.index('=')
+        key, value = pair[0:delimiter_pos], pair[delimiter_pos+1:]
         out_dict[key] = value
     return out_dict
 
 
 def dict_to_kv_str(kv_dict):
     """Challenge 13
-    Returns key-value string from dictionary
+    Returns key-value string from dictionary, all of whose keys and values must be bytes objects
     """
     assert type(kv_dict) in (dict, OrderedDict), "Must provide dictionary"
     for key, value in kv_dict.items():
@@ -237,8 +239,9 @@ def dict_to_kv_str(kv_dict):
             raise SyntaxError("& and = not allowed in kv_dict")
     out_str_pairs = list()
     for key in kv_dict:
-        out_str_pairs.append('{0}={1}'.format(key, kv_dict[key]))
-    return '&'.join(out_str_pairs)
+        out_str_pairs.append(key + b'=' + kv_dict[key])
+
+    return b'&'.join(out_str_pairs)
 
 
 def profile_for(email):
@@ -246,9 +249,9 @@ def profile_for(email):
     Encodes 'user profile' as key-value string
     """
     profile = OrderedDict()
-    profile['email'] = email
-    profile['uid'] = 10
-    profile['role'] = 'user'
+    profile[b'email'] = email
+    profile[b'uid'] = b'10'
+    profile[b'role'] = b'user'
     return dict_to_kv_str(profile)
 
 # Generate consistent AES key for ECB cut-and-paste
@@ -268,7 +271,44 @@ def decrypt_parse_profile(encrypted_profile):
     """
     decrypt = pkcs7_unpad(set1.decrypt_aes_ecb_mode(encrypted_profile, key_for_ecb_cut_and_paste))
     return kv_str_to_dict(decrypt)
-    pass
 
-print(decrypt_parse_profile(encrypt_profile(profile_for('dont@spam.meeeeeeeeeeeee'))))
-pass
+
+def cut_and_paste_adversary_interface(email_address):
+    """Challenge 13
+    Function that adversary calls to solve challenge 13
+    Accepts email address; returns ciphertext of encoded profile
+    """
+    profile = profile_for(email_address)
+    profile_ciphertext = encrypt_profile(profile)
+    return profile_ciphertext
+
+
+def ecb_cut_and_paste_solver():
+    """Challenge 13
+    Solves challenge.
+    Uses only the user input to profile_for() (as an oracle to generate "valid" ciphertexts) and the ciphertexts
+    themselves, as exposed by ecb_cut_and_paste_adversary_interface().
+    Returns the ciphertext of a role=admin profile.
+    """
+
+    # We want our last block of the ciphertext to be b'admin\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b'
+    # So, we figure out what that looks like encrypted as a block, pre-padding such that "admin" starts on a new block
+    admin_block_pt = 10*b'a' + b'admin' + 11*bytes([11])
+    admin_block_ct = cut_and_paste_adversary_interface(admin_block_pt)[16:32]
+
+    # Make an email address which puts "user" at the beginning of the last block (so we can replace with "admin")
+    # Do this by growing email address until ciphertext grows by one block, then adding three more characters
+    ct = None
+    email_prepad_len = 0
+    while True:
+        email = (email_prepad_len * b'a') + b'a@test.com'
+        new_ct = cut_and_paste_adversary_interface(email)
+        if ct is not None and len(new_ct) > len(ct):
+            break
+        else:
+            ct = new_ct
+            email_prepad_len += 1
+            continue
+
+    final_email = b'aaa' + email
+    return cut_and_paste_adversary_interface(final_email)[:-16] + admin_block_ct
