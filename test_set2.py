@@ -29,9 +29,20 @@ def test_pkcs7_pad_invalid_block_size():
         set2.pkcs7_pad(b"YELLOW SUBMARINE", 14.3)
 
 
-# def text_pkcs7_unpad():
-#     padded_text = b"YELLOW SUBMARINES\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f"
-#     assert set2.pkcs7_unpad(padded_text) == b"YELLOW SUBMARINES"
+def test_pkcs7_unpad_padding():
+    padded_text = b"YELLOW SUBMARINES\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f"
+    assert set2.pkcs7_unpad(padded_text) == b"YELLOW SUBMARINES"
+
+
+def test_pkcs7_unpad_no_padding():
+    padded_text = b"YELLOW SUBMARINE"
+    assert set2.pkcs7_unpad(padded_text) == b"YELLOW SUBMARINE"
+
+
+def test_pkcs7_unpad_invalid_padding():
+    padded_text = b"YELLOW SUBMARINES\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0c\x0f\x0f\x0f\x0f\x0f\x0f\x0f"
+    assert set2.pkcs7_unpad(padded_text) == padded_text
+
 
 def test_bytes_to_padded_blocks():
     text = b"The quick brown fox jumps over the lazy dog."
