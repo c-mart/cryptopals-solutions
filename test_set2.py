@@ -29,6 +29,10 @@ def test_pkcs7_pad_invalid_block_size():
         set2.pkcs7_pad(b"YELLOW SUBMARINE", 14.3)
 
 
+# def text_pkcs7_unpad():
+#     padded_text = b"YELLOW SUBMARINES\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f\x0f"
+#     assert set2.pkcs7_unpad(padded_text) == b"YELLOW SUBMARINES"
+
 def test_bytes_to_padded_blocks():
     text = b"The quick brown fox jumps over the lazy dog."
     block_size = 13
@@ -114,3 +118,4 @@ def test_dict_to_kv_str_error_case():
 def test_profile_for():
     assert set2.profile_for('dont@spam.me') == "email=dont@spam.me&uid=10&role=user", \
         "Output of profile_for does not match specification"
+

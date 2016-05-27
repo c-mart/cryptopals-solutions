@@ -26,6 +26,15 @@ def pkcs7_pad(text, block_size=16):
     return text_bytes + bytes([pad_length]) * pad_length
 
 
+# def pkcs7_unpad(text):
+#     """Removes PKCS#7 padding from text"""
+#     last_byte = text[-1]
+#     for char in text[-1:-last_byte:-1]:
+#         if char != last_byte:
+#             return text
+#     return text[1:-last_byte]
+
+
 def bytes_to_padded_blocks(bytes_obj, block_size):
     """Accepts a bytes-like object. Breaks it up into blocks according to block_size bytes. Last block is padded out using
     PKCS#7. Returns a list of blocks.
@@ -208,7 +217,7 @@ def kv_str_to_dict(kv_str):
     """
     assert type(kv_str) in (str, bytes), "Must provide string or bytes object"
     if type(kv_str) is bytes:
-        kv_str = str(kv_str)
+        kv_str = kv_str.decode("utf-8")
     out_dict = OrderedDict()
     kv_pairs = kv_str.split('&')
     for pair in kv_pairs:
@@ -256,7 +265,10 @@ def decrypt_parse_profile(encrypted_profile):
     """Challenge 13
     Decrypts encrypted user profile and parses it to dictionary
     """
-    decrypt = set1.decrypt_aes_ecb_mode(encrypted_profile, key_for_ecb_cut_and_paste)
-    return kv_str_to_dict(decrypt)
+    # decrypt = pkcs7_unpad(set1.decrypt_aes_ecb_mode(encrypted_profile, key_for_ecb_cut_and_paste))
+    # return kv_str_to_dict(decrypt)
+    pass
 
-print(decrypt_parse_profile(encrypt_profile(profile_for('dont@spam.me'))))
+# Fix padding problem here, what's going on?
+print(decrypt_parse_profile(encrypt_profile(profile_for('dont@spam.meeeeeeeeeeee'))))
+pass
