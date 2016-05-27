@@ -18,12 +18,13 @@ def pkcs7_pad(text, block_size=16):
     """
     if type(block_size) != int or block_size <= 0:
         raise ValueError("Block size must be a positive integer")
-    text_bytes = bytes(map(ord, text))
-    if len(text_bytes) % block_size == 0:
+    if type(text) is str:
+        text = bytes(text.encode('utf-8'))
+    if len(text) % block_size == 0:
         pad_length = 0
     else:
-        pad_length = block_size - len(text_bytes) % block_size
-    return text_bytes + bytes([pad_length]) * pad_length
+        pad_length = block_size - len(text) % block_size
+    return text + bytes([pad_length]) * pad_length
 
 
 # def pkcs7_unpad(text):

@@ -1,6 +1,5 @@
 import base64
 import binascii
-import bitstring
 import collections
 import string
 import pprint
